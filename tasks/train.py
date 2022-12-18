@@ -1,7 +1,7 @@
-from os.path import join
 from typing import Any, Dict, Tuple
 
 import pandas as pd
+from sqlalchemy import create_engine
 import optuna
 import prefect
 from prefect import task
@@ -20,10 +20,14 @@ logger = prefect.context.get("logger")
 
 
 def get_prep_pipeline(data: pd.DataFrame):
+    # 데이터 타입별로 분류
+    num_columns = data.select_dtypes(exclude=[object]).columns.values
+    cat_columns = data.select_dtypes(include=[object]).columns.values
+    
+    logger.info(f"num_columns: {num_columns}")
+    logger.info(f"cat_columns: {cat_columns}")
 
-    cat_columns = [c for c, t in zip(data.dtypes.index, data.dtypes) if t == "O"]
-    num_columns = [c for c in data.columns if c not in cat_columns]
-
+    # 전처리 파이프라인
     preprocessor = ColumnTransformer(
         transformers=[
             ("num", StandardScaler(), num_columns),
@@ -34,25 +38,29 @@ def get_prep_pipeline(data: pd.DataFrame):
     return preprocessor
 
 
-@task(nout=2)
+@task(log_stdout=True, nout=2)
 def load_data_task() -> Tuple[Tuple[pd.DataFrame], Tuple[pd.DataFrame]]:
-    data = pd.read_csv("train.csv").sample(5000)
+   # 데이터베이스 연결 설정
+   engine = create_engine("postgresql://postgres:postgres@localhost:5432/postgres")
 
-    label = data["transaction_real_price"]
-    data.drop(["transaction_real_price"], axis=1, inplace=True)
+   # 데이터 읽기
+   sql = "SELECT * FROM public.apartments"
+   data  = pd.read_sql(sql, con=engine)
+    
+   train = data.loc[data["transaction_real_price"].notnull()].sample(5000)
 
-    x_train, x_valid, y_train, y_valid = train_test_split(
-        data, label, test_size=0.7, random_state=42
-    )
+   label = train["transaction_real_price"]
+   train.drop(["transaction_real_price"], axis=1, inplace=True)
 
-    return (x_train, y_train), (x_valid, y_valid)
+   x_train, x_valid, y_train, y_valid = train_test_split(
+       train, label, test_size=0.7, random_state=42)
+
+   return (x_train, y_train), (x_valid, y_valid)
 
 
 @task(log_stdout=True, nout=3)
-def hpo_task(
-    train: pd.DataFrame,
-    valid: pd.DataFrame,
-) -> Tuple[Dict[str, Any], Dict[str, float]]:
+def hpo_task(train: Tuple[pd.DataFrame], valid: Tuple[pd.DataFrame],
+    ) -> Tuple[Dict[str, Any], Dict[str, float]]:
 
     x_train, y_train = train
     x_valid, y_valid = valid
@@ -61,6 +69,7 @@ def hpo_task(
 
     x_train = prep_pipeline.fit_transform(x_train)
     x_valid = prep_pipeline.transform(x_valid)
+    
 
     logger.info("HPO Start.")
 
