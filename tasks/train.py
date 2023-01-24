@@ -69,7 +69,6 @@ def hpo_task(train: Tuple[pd.DataFrame], valid: Tuple[pd.DataFrame],
 
     x_train = prep_pipeline.fit_transform(x_train)
     x_valid = prep_pipeline.transform(x_valid)
-    
 
     logger.info("HPO Start.")
 

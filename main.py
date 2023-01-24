@@ -36,4 +36,6 @@ with Flow("Model Train Flow") as flow:
     )
 
 if __name__ == "__main__":
-    flow.run()
+    flow.register(project_name="prefect-tutorial",
+                  add_default_labels=False,
+                  labels=['train_agent'])
