@@ -50,7 +50,7 @@ def load_data_task() -> Tuple[Tuple[pd.DataFrame], Tuple[pd.DataFrame]]:
    train = data.loc[data["transaction_real_price"].notnull()].sample(5000)
 
    label = train["transaction_real_price"]
-   train.drop(["transaction_real_price"], axis=1, inplace=True)
+   train.drop(columns=['apartment_id', 'transaction_id', 'transaction_real_price', 'jibun', 'apt', 'addr_kr', 'dong'], axis=1, inplace=True)
 
    x_train, x_valid, y_train, y_valid = train_test_split(
        train, label, test_size=0.7, random_state=42)
