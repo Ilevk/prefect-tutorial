@@ -18,14 +18,12 @@ def load_test_data() -> pd.DataFrame:
     logger.info("Data Preprocessing start")
     engine = create_engine("postgresql://postgres:postgres@localhost:5432/postgres")
 
-    sql = "SELECT * FROM public.apartments"
-    data  = pd.read_sql(sql, con=engine)
-
-    test = data.loc[data["transaction_real_price"].isnull()]
+    sql = "SELECT * FROM public.apartments where transaction_real_price is null"
+    test  = pd.read_sql(sql, con=engine)
 
     test.drop(columns=['apartment_id', 'transaction_id', 'transaction_real_price', 'jibun', 'apt', 'addr_kr', 'dong'], axis=1, inplace=True)
 
-    return data
+    return test
 
 
 @task(log_stdout=True)

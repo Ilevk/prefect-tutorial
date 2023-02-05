@@ -42,10 +42,10 @@ def get_prep_pipeline(data: pd.DataFrame):
 def load_data_task() -> Tuple[Tuple[pd.DataFrame], Tuple[pd.DataFrame]]:
    engine = create_engine("postgresql://postgres:postgres@localhost:5432/postgres")
 
-   sql = "SELECT * FROM public.apartments"
+   sql = "SELECT * FROM public.apartments where transaction_real_price is not null"
    data  = pd.read_sql(sql, con=engine)
     
-   train = data.loc[data["transaction_real_price"].notnull()].sample(5000)
+   train = data.sample(5000)
 
    label = train["transaction_real_price"]
    train.drop(columns=['apartment_id', 'transaction_id', 'transaction_real_price', 'jibun', 'apt', 'addr_kr', 'dong'], axis=1, inplace=True)
