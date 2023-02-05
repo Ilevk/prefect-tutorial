@@ -40,10 +40,8 @@ def get_prep_pipeline(data: pd.DataFrame):
 
 @task(log_stdout=True, nout=2)
 def load_data_task() -> Tuple[Tuple[pd.DataFrame], Tuple[pd.DataFrame]]:
-   # 데이터베이스 연결 설정
    engine = create_engine("postgresql://postgres:postgres@localhost:5432/postgres")
 
-   # 데이터 읽기
    sql = "SELECT * FROM public.apartments"
    data  = pd.read_sql(sql, con=engine)
     

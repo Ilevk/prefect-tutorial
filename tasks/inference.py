@@ -5,6 +5,7 @@ import mlflow
 import pandas as pd
 import prefect
 from prefect import task
+from sqlalchemy import create_engine
 from sklearn.pipeline import Pipeline
 
 from utils import save_prediction
@@ -15,8 +16,14 @@ logger = prefect.context.get("logger")
 @task(log_stdout=True)
 def load_test_data() -> pd.DataFrame:
     logger.info("Data Preprocessing start")
+    engine = create_engine("postgresql://postgres:postgres@localhost:5432/postgres")
 
-    data = pd.read_csv("test.csv")
+    sql = "SELECT * FROM public.apartments"
+    data  = pd.read_sql(sql, con=engine)
+
+    test = data.loc[data["transaction_real_price"].isnull()]
+
+    test.drop(columns=['apartment_id', 'transaction_id', 'transaction_real_price', 'jibun', 'apt', 'addr_kr', 'dong'], axis=1, inplace=True)
 
     return data
 
