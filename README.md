@@ -9,6 +9,11 @@ $ pip install -f requirements.txt
 - Dacon Apartment Price Prediction Competition.
 - https://dacon.io/competitions/official/21265/overview/description
 
+```
+$ cd dataset
+$ python3 to_database.py
+```
+
 
 ## Run MLFlow with minio, postgres
 - mlflow: localhost:5000
