@@ -10,7 +10,7 @@ $ pip install -f requirements.txt
 - https://dacon.io/competitions/official/21265/overview/description
 
 ```
-$ cd dataset
+$ cd src/database
 $ python3 to_database.py
 ```
 
@@ -25,12 +25,12 @@ $ bash start_mlflow.sh
 
 ## Run Local Agent
 ```
-$ cd src
+$ cd src/prefect
 $ bash start_agent.sh
 ```
 
 ## Register Flow
 ```
-$ cd src
+$ cd src/prefect
 $ python3 main.py
 ```
