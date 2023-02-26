@@ -18,7 +18,13 @@ $ python3 to_database.py
 ## Run MLFlow with minio, postgres
 - mlflow: localhost:5000
 - postgres: localhost:5432
+    - user: postgres
+    - password: postgres
+    - database: postgres, mlflow_db, optuna
 - minio: localhost:9000
+    - user: mlflow_admin
+    - password: mlflow_admin
+    - bucket: mlflow
 ```
 $ bash start_mlflow.sh
 ```
