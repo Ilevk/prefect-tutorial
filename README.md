@@ -2,15 +2,25 @@
 
 ## Setup Environment
 ```
-pip install -f requirements.txt
+$ pip install -f requirements.txt
+```
+
+## Run MLFlow with minio, postgres
+- mlflow: localhost:5000
+- postgres: localhost:5432
+- minio: localhost:9000
+```
+$ bash start_mlflow.sh
 ```
 
 ## Run Local Agent
 ```
-bash start_agent.sh
+$ cd src
+$ bash start_agent.sh
 ```
 
-## Run Flow Manualy
+## Register Flow
 ```
-bash run_flow.sh
+$ cd src
+$ python3 main.py
 ```
