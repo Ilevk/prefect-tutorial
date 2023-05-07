@@ -35,7 +35,7 @@ def train_pipeline(eval_metric, model_name):
 
 if __name__ == "__main__":
     deployment = Deployment.build_from_flow(
-        flow=train_pipeline,                    # 사용할 flow 함수
+        flow=train_pipeline,                                              # 사용할 flow 함수
         name="Example Flow Deployment",                                   # deployment 이름
         version=1,                                                        # deployment version
         work_queue_name="train_agent",                                    # 사용할 work queue 이름
