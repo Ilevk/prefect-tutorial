@@ -1,7 +1,7 @@
 boto3==1.26.64
 mlflow==2.1.1
 optuna==3.1.0
-prefect==1.4.1
+prefect==2.10.7
 psycopg2-binary==2.9.5
 scikit-learn==1.1.1
 xgboost==1.5.2
