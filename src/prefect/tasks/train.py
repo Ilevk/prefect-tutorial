@@ -39,9 +39,9 @@ def get_prep_pipeline(data: pd.DataFrame):
 
 @task(log_prints=True)
 def load_data_task() -> Tuple[Tuple[pd.DataFrame], Tuple[pd.DataFrame]]:
-    with SqlAlchemyConnector.load("database-connector") as connector:
-        sql = "SELECT * FROM public.apartments where transaction_real_price is not null"
-        data  = pd.read_sql(sql, con=connector)
+    engine = SqlAlchemyConnector.load("database-connector").get_engine()
+    sql = "SELECT * FROM public.apartments where transaction_real_price is not null"
+    data  = pd.read_sql(sql, con=engine)
 
     train = data.sample(5000)
 
@@ -54,7 +54,7 @@ def load_data_task() -> Tuple[Tuple[pd.DataFrame], Tuple[pd.DataFrame]]:
     return (x_train, y_train), (x_valid, y_valid)
 
 
-@task
+@task(log_prints=True)
 def hpo_task(train: Tuple[pd.DataFrame], valid: Tuple[pd.DataFrame],
     ) -> Tuple[Dict[str, Any], Dict[str, float]]:
     logger = get_run_logger()
@@ -100,7 +100,7 @@ def hpo_task(train: Tuple[pd.DataFrame], valid: Tuple[pd.DataFrame],
     return prep_pipeline, study.best_trial.params, metrics
 
 
-@task
+@task(log_prints=True)
 def train_task(
     prep_pipeline: Pipeline,
     train: pd.DataFrame,
@@ -134,7 +134,7 @@ def train_task(
     return pipeline
 
 
-@task(log_stdout=True, nout=2)
+@task(log_prints=True)
 def log_model_task(
     model: Pipeline,
     model_name: str,
@@ -155,7 +155,7 @@ def log_model_task(
     return model_info.run_id, model_info.model_uri
 
 
-@task(log_stdout=True)
+@task(log_prints=True)
 def create_model_version(
     model_name: str, run_id: str, model_uri: str, eval_metric: str
 ) -> str:
@@ -181,7 +181,7 @@ def create_model_version(
     return model_version.version
 
 
-@task(log_stdout=True)
+@task(log_prints=True)
 def transition_model_task(model_name: str, version: str, eval_metric: str) -> str:
     logger = get_run_logger()
     logger.info(f"Deploy model: {model_name} version: {version}")
