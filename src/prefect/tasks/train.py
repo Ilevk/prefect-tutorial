@@ -1,19 +1,18 @@
 from typing import Any, Dict, Tuple
 
-import pandas as pd
-from sqlalchemy import create_engine
-import optuna
-from prefect import task, get_run_logger
-from prefect_sqlalchemy import SqlAlchemyConnector
 import mlflow
 from mlflow.tracking import MlflowClient
 from mlflow.store.artifact.runs_artifact_repo import RunsArtifactRepository
-from xgboost import XGBRegressor
+import optuna
+import pandas as pd
+from prefect import task, get_run_logger
+from prefect_sqlalchemy import SqlAlchemyConnector
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import train_test_split
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.metrics import mean_squared_error
+from xgboost import XGBRegressor
 
 
 
