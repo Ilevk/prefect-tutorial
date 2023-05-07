@@ -3,8 +3,8 @@ from typing import Any, Dict, Tuple
 import pandas as pd
 from sqlalchemy import create_engine
 import optuna
-import prefect
-from prefect import task
+from prefect import task, get_run_logger
+from prefect_sqlalchemy import SqlAlchemyConnector
 import mlflow
 from mlflow.tracking import MlflowClient
 from mlflow.store.artifact.runs_artifact_repo import RunsArtifactRepository
@@ -16,16 +16,15 @@ from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.metrics import mean_squared_error
 
 
-logger = prefect.context.get("logger")
-
 
 def get_prep_pipeline(data: pd.DataFrame):
+
     # 데이터 타입별로 분류
     num_columns = data.select_dtypes(exclude=[object]).columns.values
     cat_columns = data.select_dtypes(include=[object]).columns.values
-    
-    logger.info(f"num_columns: {num_columns}")
-    logger.info(f"cat_columns: {cat_columns}")
+
+    print(f"num_columns: {num_columns}")
+    print(f"cat_columns: {cat_columns}")
 
     # 전처리 파이프라인
     preprocessor = ColumnTransformer(
@@ -38,27 +37,27 @@ def get_prep_pipeline(data: pd.DataFrame):
     return preprocessor
 
 
-@task(log_stdout=True, nout=2)
+@task(log_prints=True)
 def load_data_task() -> Tuple[Tuple[pd.DataFrame], Tuple[pd.DataFrame]]:
-   engine = create_engine("postgresql://postgres:postgres@localhost:5432/postgres")
+    with SqlAlchemyConnector.load("database-connector") as connector:
+        sql = "SELECT * FROM public.apartments where transaction_real_price is not null"
+        data  = pd.read_sql(sql, con=connector)
 
-   sql = "SELECT * FROM public.apartments where transaction_real_price is not null"
-   data  = pd.read_sql(sql, con=engine)
-    
-   train = data.sample(5000)
+    train = data.sample(5000)
 
-   label = train["transaction_real_price"]
-   train.drop(columns=['apartment_id', 'transaction_id', 'transaction_real_price', 'jibun', 'apt', 'addr_kr', 'dong'], axis=1, inplace=True)
+    label = train["transaction_real_price"]
+    train.drop(columns=['apartment_id', 'transaction_id', 'transaction_real_price', 'jibun', 'apt', 'addr_kr', 'dong'], axis=1, inplace=True)
 
-   x_train, x_valid, y_train, y_valid = train_test_split(
-       train, label, test_size=0.7, random_state=42)
+    x_train, x_valid, y_train, y_valid = train_test_split(
+        train, label, test_size=0.7, random_state=42)
 
-   return (x_train, y_train), (x_valid, y_valid)
+    return (x_train, y_train), (x_valid, y_valid)
 
 
-@task(log_stdout=True, nout=3)
+@task
 def hpo_task(train: Tuple[pd.DataFrame], valid: Tuple[pd.DataFrame],
     ) -> Tuple[Dict[str, Any], Dict[str, float]]:
+    logger = get_run_logger()
 
     x_train, y_train = train
     x_valid, y_valid = valid
@@ -101,13 +100,14 @@ def hpo_task(train: Tuple[pd.DataFrame], valid: Tuple[pd.DataFrame],
     return prep_pipeline, study.best_trial.params, metrics
 
 
-@task()
+@task
 def train_task(
     prep_pipeline: Pipeline,
     train: pd.DataFrame,
     valid: pd.DataFrame,
     params: Dict[str, Any],
 ):
+    logger = get_run_logger()
 
     logger.info(f"Training Start with params: {params}")
     x_train, y_train = train
@@ -141,6 +141,7 @@ def log_model_task(
     params: Dict[str, Any],
     metrics: Dict[str, float],
 ) -> Tuple[str, str]:
+    logger = get_run_logger()
     logger.info(
         f"Log Model with params: {params} metric: {metrics} model_name: {model_name}"
     )
@@ -158,6 +159,7 @@ def log_model_task(
 def create_model_version(
     model_name: str, run_id: str, model_uri: str, eval_metric: str
 ) -> str:
+    logger = get_run_logger()
     logger.info(
         f"Create model version model_name: {model_name}, run_id: {run_id}, model_uri: {model_uri}, eval_metric: {eval_metric}"
     )
@@ -181,6 +183,7 @@ def create_model_version(
 
 @task(log_stdout=True)
 def transition_model_task(model_name: str, version: str, eval_metric: str) -> str:
+    logger = get_run_logger()
     logger.info(f"Deploy model: {model_name} version: {version}")
 
     client = MlflowClient()

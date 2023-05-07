@@ -1,6 +1,6 @@
-from prefect import Flow
+from prefect import flow
 
-from prefect import Parameter
+from prefect.deployments import Deployment
 from tasks.train import (
     load_data_task,
     hpo_task,
@@ -10,10 +10,8 @@ from tasks.train import (
     transition_model_task,
 )
 
-with Flow("Model Train Flow") as flow:
-    eval_metric = Parameter("Evaluation Metric", "MSE")
-    model_name = Parameter("Model Registry Name", "project_name")
-
+@flow(name="Train Pipeline")
+def train_pipeline(eval_metric, model_name):
     train, valid = load_data_task()
     prep_pipeline, params, metrics = hpo_task(
         train, valid, upstream_tasks=[train, valid]
@@ -36,6 +34,11 @@ with Flow("Model Train Flow") as flow:
     )
 
 if __name__ == "__main__":
-    flow.register(project_name="prefect-tutorial",
-                  add_default_labels=False,
-                  labels=['train_agent'])
+    deployment = Deployment.build_from_flow(
+        flow=train_pipeline,                   # 사용할 flow 함수
+        name="Example Flow Deployment",        # deployment 이름
+        version=1,                             # deployment version
+        work_queue_name="train_agent",         # 사용할 work queue 이름
+        eval_metric="mse",                     # flow argument 1
+        model_name="apartment-model",          # flow argument 2
+    )
