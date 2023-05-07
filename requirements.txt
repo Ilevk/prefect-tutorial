@@ -5,3 +5,5 @@ prefect==2.10.7
 psycopg2-binary==2.9.5
 scikit-learn==1.1.1
 xgboost==1.5.2
+prefect-sqlalchemy
+prefect-aws

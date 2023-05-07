@@ -1,3 +1,4 @@
+import os
 from typing import Any, Dict, Tuple
 
 import mlflow
@@ -5,8 +6,9 @@ from mlflow.tracking import MlflowClient
 from mlflow.store.artifact.runs_artifact_repo import RunsArtifactRepository
 import optuna
 import pandas as pd
-from prefect import task, get_run_logger
+from prefect import task, get_run_logger, variables
 from prefect_sqlalchemy import SqlAlchemyConnector
+from prefect_aws import MinIOCredentials
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import train_test_split
 from sklearn.compose import ColumnTransformer
@@ -15,6 +17,13 @@ from sklearn.metrics import mean_squared_error
 from xgboost import XGBRegressor
 
 
+def set_mlflow_envs():
+    minio_credentials_block = MinIOCredentials.load("mlflow-admin")
+
+    os.environ["MLFLOW_S3_ENDPOINT_URL"] = variables.get("mlflow_s3_endpoint_url")
+    os.environ["MLFLOW_TRACKING_URI"] = variables.get("mlflow_tracking_uri")
+    os.environ["AWS_ACCESS_KEY_ID"] = minio_credentials_block.minio_root_user
+    os.environ["AWS_SECRET_ACCESS_KEY"] = minio_credentials_block.minio_root_password.get_secret_value()
 
 def get_prep_pipeline(data: pd.DataFrame):
 
@@ -140,6 +149,7 @@ def log_model_task(
     params: Dict[str, Any],
     metrics: Dict[str, float],
 ) -> Tuple[str, str]:
+    set_mlflow_envs()
     logger = get_run_logger()
     logger.info(
         f"Log Model with params: {params} metric: {metrics} model_name: {model_name}"
@@ -158,6 +168,7 @@ def log_model_task(
 def create_model_version(
     model_name: str, run_id: str, model_uri: str, eval_metric: str
 ) -> str:
+    set_mlflow_envs()
     logger = get_run_logger()
     logger.info(
         f"Create model version model_name: {model_name}, run_id: {run_id}, model_uri: {model_uri}, eval_metric: {eval_metric}"
@@ -182,6 +193,7 @@ def create_model_version(
 
 @task(log_prints=True)
 def transition_model_task(model_name: str, version: str, eval_metric: str) -> str:
+    set_mlflow_envs()
     logger = get_run_logger()
     logger.info(f"Deploy model: {model_name} version: {version}")
 
